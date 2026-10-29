@@ -1,0 +1,8 @@
+{
+  "1": { "class_type": "ZImageLoader", "inputs": { "unet_name": "z_image_turbo_bf16.safetensors", "vae_name": "ae.safetensors", "clip_name": "qwen_3_4b.safetensors" } },
+  "4": { "class_type": "CLIPTextEncode", "inputs": { "text": "Un homme africain style anime regardant la ville de Libreville au coucher du soleil", "clip": ["1", 2] } },
+  "5": { "class_type": "CLIPTextEncode", "inputs": { "text": "bad quality, watermark, ugly", "clip": ["1", 2] } },
+  "6": { "class_type": "EmptyLatentImage", "inputs": { "width": 1024, "height": 1024, "batch_size": 1 } },
+  "7": { "class_type": "ZImageSampler", "inputs": { "model": ["1", 0], "vae": ["1", 1], "positive": ["4", 0], "negative": ["5", 0], "latent_image": ["6", 0], "seed": 42, "steps": 9, "cfg": 1.0, "sampler_name": "euler", "scheduler": "normal", "denoise": 1.0 } },
+  "8": { "class_type": "SaveImage", "inputs": { "filename_prefix": "ComfyUI", "images": ["7", 0] } }
+}

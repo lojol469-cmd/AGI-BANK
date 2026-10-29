@@ -1,0 +1,37 @@
+{
+  "Audit VAALCO CEPP ETAME 2005 TER": {
+    "name": "Audit VAALCO CEPP ETAME 2005 TER",
+    "source": "C:\\Users\\BELIKANON\\Desktop\\AUDIT VAALCO GABON 2005 & 2006\\Audit VAALCO CEPP ETAME 2005 TER.xls",
+    "extracted_at": "2026-10-22T14:45:04.573910",
+    "shape": [
+      44,
+      16
+    ],
+    "columns": [
+      "col_0",
+      "Janvier",
+      "Février",
+      "Mars",
+      "Avril",
+      "Mai",
+      "Juin",
+      "Juillet",
+      "Août",
+      "Septembre",
+      "Octobre",
+      "Novembre",
+      "Décembre",
+      "col_13",
+      "col_14",
+      "col_15"
+    ],
+    "meta": {
+      "header_row_index": 4,
+      "format": "excel"
+    },
+    "chunked": false,
+    "output_files": [
+      "workspace_stream\\data_extracted\\Audit VAALCO CEPP ETAME 2005 TER.json"
+    ]
+  }
+}

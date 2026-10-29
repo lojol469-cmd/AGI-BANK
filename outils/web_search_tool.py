@@ -1,148 +1,135 @@
-"""
-Outil de Recherche Web Avancée
-Utilise plusieurs sources pour rechercher des informations sur le web
-"""
-
-import re
-from typing import Dict, List, Any, Optional
-from .__init__ import BaseTool
-import requests
-from bs4 import BeautifulSoup
+﻿# -*- coding: utf-8 -*-
+import sys
 import time
+import random
+import re
+import requests
+from typing import Dict, Any
+from concurrent.futures import ThreadPoolExecutor
+
+try:
+    from bs4 import BeautifulSoup
+    BS4_OK = True
+except ImportError:
+    BS4_OK = False
+
+try:
+    from ddgs import DDGS
+    DDGS_OK = True
+except ImportError:
+    DDGS_OK = False
+
+try:
+    from . import BaseTool
+except ImportError:
+    from outils import BaseTool
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15",
+]
 
 class WebSearchTool(BaseTool):
-    """Outil spécialisé dans la recherche web intelligente"""
-
     @property
     def name(self) -> str:
-        return "web_search_advanced"
+        return "web_search"
 
     @property
     def description(self) -> str:
-        return "Recherche intelligente sur le web avec analyse de pertinence"
+        return ("Recherche des informations sur internet sur PLUSIEURS sources à la fois. "
+                "Idéal pour les actualités, les résultats sportifs, ou les faits récents.")
 
     @property
-    def capabilities(self) -> List[str]:
-        return [
-            "recherche web",
-            "analyse de contenu",
-            "actualités",
-            "documentation technique",
-            "recherche académique",
-            "tendances"
-        ]
+    def capabilities(self) -> list:
+        return ["web_search", "internet", "scraping", "news"]
 
-    def can_handle(self, query: str, context: Dict[str, Any] = None) -> float:
-        """Détermine si la requête nécessite une recherche web"""
-        web_keywords = [
-            "actualité", "news", "dernier", "récent", "tendance",
-            "rechercher", "chercher", "trouver", "information",
-            "comment faire", "tutoriel", "guide", "documentation",
-            "prix", "coût", "comparer", "vs", "versus"
-        ]
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "La requête de recherche (ex: 'Ballon d'or 2026', 'Actualité Barcelone')"
+                }
+            },
+            "required": ["query"]
+        }
 
-        query_lower = query.lower()
+    def can_handle(self, query: str, context: dict = None) -> float:
+        q = query.lower()
+        if any(kw in q for kw in ["internet", "cherche", "actualité", "ballon d'or", "news", "web", "météo", "qui a gagné", "résultat"]):
+            return 0.95
+        return 0.0
 
-        # Mots-clés indiquant une recherche web
-        score = 0.0
-        for keyword in web_keywords:
-            if keyword in query_lower:
-                score += 0.3
-
-        # Questions commençant par "Qu'est-ce que", "Comment", "Pourquoi", etc.
-        question_starters = ["qu'est-ce que", "comment", "pourquoi", "quand", "où", "qui"]
-        for starter in question_starters:
-            if query_lower.startswith(starter):
-                score += 0.4
-
-        # Contexte récent (moins de 24h)
-        if context and context.get('time_sensitive', False):
-            score += 0.3
-
-        return min(score, 1.0)
-
-    def execute(self, query: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Effectue une recherche web avancée"""
+    def _scrape_url(self, url: str, max_chars: int = 1200) -> str:
+        if not BS4_OK: return ""
         try:
-            # Simulation d'une recherche web (en production, utiliser une vraie API)
-            results = self._perform_web_search(query)
+            headers = {"User-Agent": random.choice(USER_AGENTS)}
+            resp = requests.get(url, headers=headers, timeout=8)
+            if resp.status_code != 200: return ""
+            
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+                tag.decompose()
+                
+            paragraphs = soup.find_all("p")
+            text = " ".join([p.get_text(separator=" ", strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 30])
+            text = re.sub(r'\s+', ' ', text).strip()
+            
+            return text[:max_chars] + "..." if len(text) > max_chars else text
+        except Exception:
+            return ""
 
-            return {
-                'query': query,
-                'results': results,
-                'total_results': len(results),
-                'search_type': 'web_search',
-                'timestamp': time.time()
-            }
+    def execute(self, query: str, context: dict = None) -> dict:
+        print(f"[web_search] Recherche Multi-Sources : {query}")
+        sys.stdout.flush()
 
-        except Exception as e:
-            return {
-                'error': f"Erreur lors de la recherche web: {str(e)}",
-                'query': query
-            }
+        links = []
+        if DDGS_OK:
+            try:
+                with DDGS() as ddgs:
+                    # 1. On cherche D'ABORD dans les NEWS (Presse, Actualités)
+                    news_results = list(ddgs.news(query, max_results=3))
+                    for r in news_results:
+                        links.append({
+                            "title": r.get("title", "").strip(),
+                            "url": r.get("url", "").strip(),
+                            "snippet": r.get("body", "").strip()
+                        })
+                    
+                    # 2. On complète avec une recherche WEB classique (Blogs, Wikipedia...)
+                    text_results = list(ddgs.text(query, max_results=3))
+                    for r in text_results:
+                        url = r.get("href", "").strip()
+                        # On évite de remettre un lien Wikipedia si on en a déjà un
+                        if not any(l["url"] == url for l in links):
+                            links.append({
+                                "title": r.get("title", "").strip(),
+                                "url": url,
+                                "snippet": r.get("body", "").strip()
+                            })
+            except Exception as e:
+                print(f"[web_search] DDGS echec: {e}")
 
-    def _perform_web_search(self, query: str) -> List[Dict[str, Any]]:
-        """Effectue la recherche web réelle"""
-        # En production, remplacer par une vraie API (Tavily, Google, etc.)
-        # Pour l'exemple, on simule des résultats
+        if not links:
+            return {"success": False, "output": "Impossible de trouver des sources sur internet pour le moment."}
 
-        # Analyse de la requête pour déterminer le type de recherche
-        query_lower = query.lower()
+        # On garde les 5 meilleurs liens
+        links = links[:5]
+        print(f"   -> Scraping de {len(links)} sources variées en parallèle...")
+        
+        def process_link(link):
+            content = self._scrape_url(link["url"])
+            if not content:
+                content = link["snippet"] + "..." if link["snippet"] else "[Contenu bloqué par le site]"
+            
+            return f"### Source : {link['title']}\nURL: {link['url']}\nExtrait: {content}\n"
 
-        if any(word in query_lower for word in ["actualité", "news", "dernier"]):
-            return self._get_news_results(query)
-        elif any(word in query_lower for word in ["prix", "coût", "tarif"]):
-            return self._get_price_results(query)
-        elif any(word in query_lower for word in ["tutoriel", "guide", "comment faire"]):
-            return self._get_tutorial_results(query)
-        else:
-            return self._get_general_results(query)
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            scraped_results = list(executor.map(process_link, links))
 
-    def _get_news_results(self, query: str) -> List[Dict[str, Any]]:
-        """Résultats pour les actualités"""
-        return [
-            {
-                'title': f"Actualités récentes sur {query}",
-                'snippet': f"Informations à jour concernant {query}...",
-                'url': f"https://news.example.com/{query.replace(' ', '-')}",
-                'source': 'News Aggregator',
-                'date': '2025-11-22',
-                'type': 'news'
-            }
-        ]
-
-    def _get_price_results(self, query: str) -> List[Dict[str, Any]]:
-        """Résultats pour les prix"""
-        return [
-            {
-                'title': f"Prix et comparatifs pour {query}",
-                'snippet': f"Analyse des prix et meilleures offres pour {query}...",
-                'url': f"https://price.example.com/{query.replace(' ', '-')}",
-                'source': 'Price Comparison',
-                'type': 'price_comparison'
-            }
-        ]
-
-    def _get_tutorial_results(self, query: str) -> List[Dict[str, Any]]:
-        """Résultats pour les tutoriels"""
-        return [
-            {
-                'title': f"Tutoriel complet: {query}",
-                'snippet': f"Guide étape par étape pour {query}...",
-                'url': f"https://tutorial.example.com/{query.replace(' ', '-')}",
-                'source': 'Tutorial Hub',
-                'type': 'tutorial'
-            }
-        ]
-
-    def _get_general_results(self, query: str) -> List[Dict[str, Any]]:
-        """Résultats généraux"""
-        return [
-            {
-                'title': f"Informations sur {query}",
-                'snippet': f"Contenu détaillé concernant {query}...",
-                'url': f"https://info.example.com/{query.replace(' ', '-')}",
-                'source': 'General Search',
-                'type': 'general'
-            }
-        ]
+        final_output = f"Voici les résultats de recherche multi-sources pour '{query}' :\n\n"
+        final_output += "\n---\n".join(scraped_results)
+        
+        return {"success": True, "output": final_output}

@@ -1,4 +1,8 @@
-# Python
+# ==========================================
+# KIBALI AGI - GITIGNORE BLINDÉ
+# ==========================================
+
+# --- 1. PYTHON DE BASE ---
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,52 +25,80 @@ wheels/
 *.egg
 MANIFEST
 
-# Environment variables
+# --- 2. ENVIRONNEMENTS & SECRETS (CRITIQUE) ---
 .env
 .env.local
 .env.production
 .env.staging
-
-# IDE
+.kaggle/
 .vscode/
 .idea/
+.agents/
+.claude/
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
+# --- 3. MODELES IA & BINAIRES LOURDS ---
+env_portable/
+venv/
+.venv/
+models/
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.onnx
 
-# Logs
-*.log
-logs/
-
-# Temporary files
-*.tmp
-*.temp
-
-# Data directories (comment out if you want to include data)
+# --- 4. DONNEES, DATASETS ET RAPPORTS GENERÉS ---
+# On ne push pas les fichiers de test ou les datasets Kaggle (300 Mo+)
+outputs/datasets/
+outputs/reports/
 kibali_data/
 data/
-models/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Streamlit
-.streamlit/
-
-# Node modules (if any)
-node_modules/
-
-# Database
+*.xlsx
+*.csv
+*.pdf
+*.png
+*.jpg
+*.dat
 *.db
 *.sqlite
 *.sqlite3
 
-# Cache
+# --- 5. CACHES SPECIFIQUES KIBALI ---
+faiss_tools_cache_*/
+cache/
+temp_repos/
 .cache/
 .pytest_cache/
 .mypy_cache/
-# Exception: Configuration des modèles (sans les modèles eux-mêmes)
+rag_chunks_cache.json
+kibali_tools.json
+kibali_rag_memory.json
+kibali_trace.jsonl
+kibali_chat_history.jsonl
+*.log
+logs/
 
+# --- 6. SAUVEGARDES ET FICHIERS TEMPORAIRES ---
+BACKUP/
+backups/
+fix/
+patch/
+*.bak_*
+*.bak
+*.tmp
+*.temp
+app.py.bak_*
+restore_*.py
+safest_fix.py
+ultimate_fix.py
+safe_restore.py
+clean_code_patch.py
+
+# --- 7. SYSTEME ---
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints
+node_modules/

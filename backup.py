@@ -159,7 +159,7 @@ from sklearn.cluster import KMeans
 import torch
 from torchvision import models, transforms
 from langchain_huggingface import HuggingFaceEndpoint
-from langchain.agents import initialize_agent, Tool
+from langchain_classic.agents import initialize_agent, Tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
@@ -10075,7 +10075,7 @@ from sklearn.cluster import KMeans
 import torch
 from torchvision import models, transforms
 from langchain_huggingface import HuggingFaceEndpoint
-from langchain.agents import initialize_agent, Tool
+from langchain_classic.agents import initialize_agent, Tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
